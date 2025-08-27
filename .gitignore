@@ -1,0 +1,17 @@
+# Node/Vite
+website/node_modules/
+website/dist/
+website/.env*
+website/.vercel/
+
+# Python/Modal
+server/.venv/
+server/__pycache__/
+server/.mypy_cache/
+server/.env*
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
