@@ -8,10 +8,11 @@ import About from "./pages/About";
 import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
+import ChatWidget from "./components/ChatWidget";
 import "./styles/theme.css";
 import "./styles/layout.css";
 import "./styles/effects.css";
-import ChatWidget from "./components/ChatWidget";
+
 
 // Sync site.json colors to CSS variables so rebranding is easy
 function useBrandColors() {
