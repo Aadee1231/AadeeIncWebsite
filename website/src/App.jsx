@@ -13,38 +13,29 @@ import "./styles/layout.css";
 import "./styles/effects.css";
 import ChatWidget from "./components/ChatWidget";
 
-
 // Sync site.json colors to CSS variables so rebranding is easy
-function useBrandColors(){
-  useEffect(()=>{
+function useBrandColors() {
+  useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty("--color-primary", site.brand.primary);
     root.style.setProperty("--color-accent", site.brand.accent);
-  },[]);
+  }, []);
 }
 
-export default function App(){
+export default function App() {
   useBrandColors();
   return (
     <BrowserRouter>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Home/>}/>
-        <Route path="/about" element={<About/>}/>
-        <Route path="/services" element={<Services/>}/>
-        <Route path="/pricing" element={<Pricing/>}/>
-        <Route path="/contact" element={<Contact/>}/>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/contact" element={<Contact />} />
       </Routes>
       <Footer />
-    </BrowserRouter>
-  );
-}
-
-export default function App() {
-  return (
-    <>
-      {/* your site content */}
       <ChatWidget />
-    </>
+    </BrowserRouter>
   );
 }
