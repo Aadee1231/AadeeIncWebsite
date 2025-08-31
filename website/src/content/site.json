@@ -1,0 +1,67 @@
+{
+  "brand": { "name": "Aadee Inc.", "logoText": "Aadee Inc.", "primary": "#FF4D4D", "accent": "#FFB020" },
+  "nav": [
+    { "label": "Home", "to": "/" },
+    { "label": "About", "to": "/about" },
+    { "label": "Services", "to": "/services" },
+    { "label": "Price", "to": "/pricing" },
+    { "label": "Contact", "to": "/contact" }
+  ],
+  "media": { "heroVideo": "/hero.webm", "pattern": "/grid.svg" },
+  "home": {
+    "hero": {
+      "headline": "AI that works for your business",
+      "subhead": "Modern automation, chat, and analytics—in days, not months.",
+      "media": "/hero.jpg",
+      "cta": { "label": "Get a free consult", "to": "/contact" }
+    },
+    "advantages": [
+      { "title": "Faster ops", "desc": "Automate intake, scheduling, and FAQs." },
+      { "title": "Better CX", "desc": "24/7 responses with human handoff." },
+      { "title": "Data-driven", "desc": "Track leads and conversions easily." }
+    ],
+    "industries": [
+      { "name": "Healthcare", "img": "/industries/healthcare.jpg", "example": "Book visits, triage FAQs, reminders." },
+      { "name": "Restaurants", "img": "/industries/restaurant.jpg", "example": "Hours/menu Q&A, reservations, reviews." },
+      { "name": "Retail", "img": "/industries/retail.jpg", "example": "Product Q&A, order status, upsells." },
+      { "name": "Home Services", "img": "/industries/homeservices.jpg", "example": "Quote intake, job scheduling, routes." },
+      { "name": "Education", "img": "/industries/education.jpg", "example": "Admissions FAQs, tutoring bot, events." },
+      { "name": "Non-profits", "img": "/industries/nonprofit.jpg", "example": "Donor Q&A, volunteer onboarding." }
+    ],
+    "stats": [
+      { "label": "Avg. response time", "value": "<1s" },
+      { "label": "Leads captured", "value": "+40%" },
+      { "label": "Setup time", "value": "3-7 days" }
+    ],
+    "logos": [ "/logos/1.png", "/logos/2.png", "/logos/3.png", "/logos/4.png" ]
+  },
+  "about": {
+    "heroImage": "/about.jpg",
+    "whatWeDo": "At Aadee Inc., we specialize in building intelligent, accessible, and practical AI solutions tailored for small and mid-sized businesses. Our mission is to take the complexity out of emerging technologies and deliver them in ways that solve real problems: faster operations, stronger customer relationships, and sustainable growth. From developing smart websites to deploying AI-powered chat and receptionist systems, we integrate everything into one seamless hub. By combining technical expertise with a deep understanding of business workflows, we provide solutions that are not only cutting-edge, but also affordable, adaptable, and built to scale with your company’s success.",
+    "team": [
+      { "name": "Aadee Chheda", "role": "Founder & Engineer" }
+    ],
+    "story": "Aadee Inc. was born out of a simple observation: most small businesses know that AI and digital automation could save them time and money, but they feel overwhelmed by where to start. We wanted to bridge that gap. Our founder envisioned a company where advanced AI tools are packaged into easy, turnkey solutions that anyone can adopt without a technical background. What began as a small project to help local businesses streamline their workflows has grown into a full-service platform that empowers organizations across industries. Our story is one of accessibility, innovation, and a relentless commitment to making AI practical and personal for every client we serve.",
+    "contactCTA": "Let's talk about your goals."
+  },
+  "services": [
+    { "title": "Website with Hosting", "details": "Your website is often the first impression customers have of your business, and we ensure it makes a lasting impact. We design sleek, modern websites that are mobile-friendly, fast, and optimized for search engines. Each site comes with secure hosting, analytics integration, and the flexibility to grow as your business grows. Instead of juggling multiple vendors, we provide a single, reliable platform where your digital presence and AI services work seamlessly together." },
+    { "title": "Tailor-made AI solutions for your business", "details": "Every business has unique workflows, challenges, and opportunities. Our team analyzes your current processes and identifies where automation and AI can deliver the most value, whether it's customer support, scheduling, lead capture, or operations. From there, we design and implement AI tools that fit your exact needs rather than forcing you into one-size-fits-all software. The result is a solution that's cost-effective, practical, and aligned with how your business actually runs." },
+    { "title": "Tools to create your own business", "details": "For entrepreneurs and startups, getting from idea to execution is often the hardest part. We provide AI-powered tools that help you move faster, including name generators, branding kickstarters, website templates, and strategic planning resources. Think of it as a digital starter kit for your business, built on proven workflows and guided by our team so you can focus on growing your vision instead of getting stuck on logistics." },
+    { "title": "AI Chatbot (info, scheduling, etc.)", "details": "Customers expect quick answers, and our AI chatbot ensures you're available 24/7. The chatbot can handle FAQs, product information, appointment scheduling, order tracking, and even escalate conversations to a human when needed. It's fully customizable to your brand's voice and can be integrated directly into your website or social media. With built-in analytics, you'll also see what customers are asking most, so you can adapt your services to meet demand." },
+    { "title": "AI Receptionist (calls, scheduling, etc.)", "details": "Never miss a call again. Our AI receptionist answers phone calls, takes messages, books appointments, and routes inquiries directly to the right person on your team. Unlike traditional call centers, our receptionist learns your business details and delivers consistent, professional communication every time. It reduces the burden on your staff, improves customer satisfaction, and ensures that even after hours, your business is still responsive and reliable." },
+    { "title": "AI Social Media Expert", "details": "Staying active on social media can feel like a full-time job. Our AI social media expert takes the workload off your shoulders by creating branded content, scheduling posts, analyzing engagement, and suggesting improvements. From writing captions to generating graphics, the system helps you maintain a consistent online presence without the hassle. It's like having a digital marketing assistant that never sleeps and always keeps your audience engaged." },
+    { "title": "GEO & SEO + AI Business Analysis", "details": "Being found online is essential, especially for local businesses. Our SEO & GEO optimization ensures your business appears in the right searches and maps, helping customers find you when it matters most. Combined with our AI-powered business analysis tools, you'll gain insights into customer behavior, sales trends, and performance metrics. We don't just give you data, we give you actionable recommendations that help you grow smarter and faster." }
+  ],
+  "pricing": [
+    { "plan": "Basic", "price": "$99.99/mo", "includes": ["Website with hosting", "AI chatbot", "AI receptionist"] },
+    { "plan": "Pro", "price": "$149.99/mo", "includes": ["Everything in Basic", "SEO + GEO", "Tailor-made AI", "Business tools", "AI social media expert"] },
+    { "plan": "Expert", "price": "$249.99/mo", "includes": ["Everything in Basic + Pro", "Business Analysis"] }
+  ],
+  "contact": {
+    "email": "hello@aadeeinc.com",
+    "phone": "+1 (555) 555-5555",
+    "social": { "x": "https://x.com/yourhandle", "linkedin": "https://linkedin.com/company/yourco" },
+    "hiring": { "enabled": true, "text": "We're hiring! Submit your info below." }
+  }
+}

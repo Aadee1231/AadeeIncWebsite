@@ -1,35 +1,50 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import site from "./content/site.json";
+import Navbar from "./components/Navbar";
+import Footer from "./components/FooterPro";
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Services from "./pages/Services";
+import Pricing from "./pages/Pricing";
+import Contact from "./pages/Contact";
+import "./styles/theme.css";
+import "./styles/layout.css";
+import "./styles/effects.css";
+import ChatWidget from "./components/ChatWidget";
 
-function App() {
-  const [count, setCount] = useState(0)
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+// Sync site.json colors to CSS variables so rebranding is easy
+function useBrandColors(){
+  useEffect(()=>{
+    const root = document.documentElement;
+    root.style.setProperty("--color-primary", site.brand.primary);
+    root.style.setProperty("--color-accent", site.brand.accent);
+  },[]);
 }
 
-export default App
+export default function App(){
+  useBrandColors();
+  return (
+    <BrowserRouter>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home/>}/>
+        <Route path="/about" element={<About/>}/>
+        <Route path="/services" element={<Services/>}/>
+        <Route path="/pricing" element={<Pricing/>}/>
+        <Route path="/contact" element={<Contact/>}/>
+      </Routes>
+      <Footer />
+    </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      {/* your site content */}
+      <ChatWidget />
+    </>
+  );
+}

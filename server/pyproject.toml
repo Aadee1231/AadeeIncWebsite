@@ -1,0 +1,21 @@
+[project]
+name = "aadee-backend"
+version = "0.1.0"
+description = "FastAPI backend for Aadee Inc chatbot & scheduling"
+requires-python = ">=3.11"
+dependencies = [
+"fastapi",
+"uvicorn[standard]",
+"pydantic==2.*",
+"httpx",
+"python-dotenv",
+"supabase~=2.6", # supabase-py v2
+"google-api-python-client",
+"google-auth-httplib2",
+"google-auth-oauthlib",
+"openai", # if using OpenAI for chat
+]
+
+
+[tool.uvicorn]
+factory = false

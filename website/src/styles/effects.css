@@ -1,0 +1,165 @@
+/* Animated gradient for hero sections */
+.ai-gradient{
+  background:linear-gradient(120deg,rgba(108,99,255,.25),rgba(32,201,151,.25));
+  background-size:200% 200%;
+  animation:shift 12s ease-in-out infinite;
+}
+@keyframes shift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* Glass variant */
+.glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px);border-radius:14px;}
+
+/* Neon button glow */
+.neon{ box-shadow:0 0 20px rgba(255,176,32,.35), inset 0 0 10px rgba(255,176,32,.20); }
+
+/* Gradient text now uses new red/amber */
+.text-gradient{
+  background:linear-gradient(90deg,var(--color-primary),var(--color-accent));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+/* Ribbon / ambient glow behind sections */
+.ribbon{position:relative;overflow:hidden}
+.ribbon::before{content:"";position:absolute;inset:-20%;
+  background:linear-gradient(120deg,rgba(255,77,77,.20),rgba(255,176,32,.20));
+  filter:blur(40px);transform:translateY(-20%);
+}
+
+/* Image cards */
+.img-card img{width:100%;height:200px;object-fit:cover;border-radius:12px}
+.img-caption{font-size:.95rem;color:var(--muted)}
+
+/* Hover lift + glow */
+.card.lift:hover{transform:translateY(-4px);transition:transform .2s ease}
+.card.glow{box-shadow:0 0 0 1px rgba(255,255,255,.08) inset, 0 0 24px rgba(255,77,77,.25)}
+
+/* Little animated sparkles in hero */
+.sparkle{position:absolute;border-radius:50%;background:rgba(255,255,255,.5)}
+@keyframes drift{0%{transform:translateY(0)}50%{transform:translateY(-12px)}100%{transform:translateY(0)}}
+
+/* Pill badges for quick features */
+.pills{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+.pill{padding:.35rem .6rem;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:.9rem}
+
+/* Apply red glow to any card that opts-in with .glow */
+.card.glow{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.08) inset,
+    0 10px 24px rgba(255,77,77,.18),
+    0 0 24px rgba(255,77,77,.24);
+}
+
+/* Optional: lift on hover for nicer feel */
+.card.lift:hover{
+  transform: translateY(-4px);
+  transition: transform .2s ease;
+}
+
+/* Ensure equal-height feature cards in 3-up grids */
+.equal-3 > *{ display:flex; flex-direction:column; min-height: 132px; }
+
+/* Make the animated section gradient more red-ish (used in Pricing hero, etc.) */
+.ai-gradient{
+  background: linear-gradient(120deg, rgba(255,77,77,.25), rgba(255,176,32,.20));
+  background-size: 200% 200%;
+  animation: shift 12s ease-in-out infinite;
+}
+
+/* A tad more spacing utilities */
+.mt-1{ margin-top: .75rem; }
+.mt-2{ margin-top: 1rem; }
+.mt-3{ margin-top: 1.5rem; }
+.gap-lg{ gap: 1.25rem; }
+
+/* Accent edge card: subtle gradient strip + faint mist on hover (no glow) */
+.accent-card{
+  position:relative; border-radius:14px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  overflow:hidden; padding:1rem;
+}
+.accent-card::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+  background:linear-gradient(180deg,var(--color-primary),var(--color-accent));
+  opacity:.95;
+  pointer-events:none;
+}
+.accent-card::after{
+  content:""; position:absolute; inset:0;
+  background:radial-gradient(600px 160px at 20% 0%, rgba(255,77,77,.09), transparent 60%);
+  opacity:0; transition:opacity .3s ease;
+  pointer-events:none;
+}
+.accent-card:hover::after{ opacity:1; }
+
+/* Accordion header niceties */
+.accordion-head{ display:flex; justify-content:space-between; align-items:center; }
+.accordion-head .chev{ transition: transform .25s ease; }
+.accordion-open .chev{ transform: rotate(90deg); }
+
+/* Force equal height cards inside .equal-3 grids */
+.equal-3 > .card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 160px; /* tweak as needed for balance */
+}
+
+.equal-3 > .card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* center content vertically */
+  text-align: center;       /* optional: also center text */
+  min-height: 160px;
+}
+
+/* Page-side ambient accents (use on any section with .page-accents) */
+.page-accents { position: relative; overflow: hidden; }
+.page-accents::before,
+.page-accents::after{
+  content:""; position:absolute; top:-10%; bottom:-10%; width:220px; filter: blur(28px); opacity:.22;
+  background: radial-gradient(360px 360px at center, rgba(255,77,77,.45), transparent 60%);
+  pointer-events:none;
+}
+.page-accents::before{ left:-60px; }
+.page-accents::after { right:-60px; transform: scaleX(-1); }
+
+/* Subtle band behind a section */
+.band { background: linear-gradient(180deg, rgba(255,77,77,.06), transparent 35%, transparent 65%, rgba(255,176,32,.05)); }
+.about-accents{ position:relative; overflow:hidden; }
+.about-accents::after{
+  content:""; position:absolute; inset: -20% -5% auto -5%; height: 45%;
+  background: radial-gradient(800px 260px at 50% -10%, rgba(255,176,32,.15), transparent 60%);
+  filter: blur(18px); pointer-events:none;
+}
+
+.accordion-head{ display:flex; align-items:center; justify-content:space-between; }
+.accordion-head .chev{ transition: transform .25s ease; }
+.accordion-open .chev{ transform: rotate(90deg); }
+
+/* Scoped typography/spacing bump just for the Services list */
+.services-page .grid > * .accent-card {
+  padding: 1.15rem;             /* bigger boxes */
+}
+
+.services-page h1 {
+  font-size: 2.1rem;            /* larger page title */
+}
+
+.services-page .accordion-head h3 {
+  font-size: 1.15rem;           /* bigger service titles */
+}
+
+.services-page .accent-card p {
+  font-size: 1.05rem;           /* bigger body text */
+  line-height: 1.65;
+}
+
+/* slightly larger gap between services */
+.services-page .grid { gap: 1.25rem; }
+
+.band-alt {
+  background: linear-gradient(180deg, rgba(255,176,32,.06), transparent 35%, transparent 65%, rgba(255,77,77,.05));
+}
+
+
