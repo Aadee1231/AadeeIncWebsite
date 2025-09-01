@@ -6,6 +6,10 @@ from .supabase_client import sb
 from .google_calendar import list_free_suggestions, create_booking
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+from .supabase_client import sb
+from .google_calendar import find_free_slots, create_booking
 
 router = APIRouter()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -66,4 +70,29 @@ def handle_message(msg: ChatMessage):
 @router.post("/book")
 def book(req: BookRequest):
     ev = create_booking(req.start_iso, attendee_email=req.email)
+    return ev
+
+class BookRequest(BaseModel):
+    session_id: str
+    start_iso: str
+    email: str | None = None
+
+@router.get("/availability")
+def availability(days: int = Query(14, ge=1, le=30)):
+    try:
+        slots = find_free_slots(days=days)
+        return {"slots": slots}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/book")
+def book(req: BookRequest):
+    if not req.start_iso:
+        raise HTTPException(status_code=400, detail="start_iso required")
+    ev = create_booking(req.start_iso, attendee_email=req.email)
+    # persist for your own analytics
+    sb.table("messages").insert({
+        "session_id": req.session_id, "role": "assistant",
+        "content": f"Booked {req.start_iso} for {req.email}"
+    }).execute()
     return ev
