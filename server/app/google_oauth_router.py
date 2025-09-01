@@ -1,3 +1,4 @@
+# server/app/google_oauth_router.py
 import os
 from fastapi import APIRouter, Request
 from fastapi.responses import RedirectResponse
@@ -21,7 +22,11 @@ def _flow():
 def start():
     f = _flow()
     f.redirect_uri = os.environ["GOOGLE_OAUTH_REDIRECT_URI"]
-    url, _ = f.authorization_url(access_type='offline', include_granted_scopes='true', prompt='consent')
+    url, _ = f.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent",
+    )
     return RedirectResponse(url)
 
 @router.get("/callback")
