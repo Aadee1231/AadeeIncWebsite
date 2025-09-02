@@ -88,26 +88,20 @@ def book(req: BookRequest):
     if not req.start_iso or not req.email:
         raise HTTPException(status_code=400, detail="start_iso and email required")
 
-    # Put context into the calendar description
-    desc_lines = []
-    if req.purpose: desc_lines.append(f"Purpose: {req.purpose}")
-    if req.name:    desc_lines.append(f"Name: {req.name}")
-    if req.phone:   desc_lines.append(f"Phone: {req.phone}")
-    description = "\n".join(desc_lines)
-
     ev = create_booking(
         start_iso=req.start_iso,
         attendee_email=req.email,
-        summary="Aadee Inc – Meeting",
+        name=req.name,
+        phone=req.phone,
+        purpose=req.purpose,
         duration_min=30,
-        description=description or None,
     )
 
-    # Log the booking
+    # (optional) log to messages or a bookings table
     sb.table("messages").insert({
         "session_id": req.session_id,
         "role": "assistant",
-        "content": f"Booked {req.start_iso} for {req.email} ({req.purpose or 'n/a'})"
+        "content": f"Booked {req.start_iso} for {req.email} (purpose: {req.purpose or 'n/a'})"
     }).execute()
 
     return ev

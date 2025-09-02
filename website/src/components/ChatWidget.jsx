@@ -60,16 +60,29 @@ export default function ChatWidget() {
     setLoadingAvail(true);
     setSlotsByDay({});
     try {
-      const res = await fetch(`${backend}/api/chat/availability?days=14`);
-      const data = await res.json();
-      const grouped = data.grouped || {};
-      // grouped only contains days with slots; no “yesterday” noise
-      setSlotsByDay(grouped);
+        const res = await fetch(`${backend}/api/chat/availability?days=14`);
+        const data = await res.json();
+        const slots = data.slots || [];
+
+        // Re-group by LOCAL date (not UTC) and hide past days
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const byDay = {};
+        for (const iso of slots) {
+        const d = new Date(iso);                   // local
+        if (d < today) continue;                   // drop yesterday, etc.
+        const key =
+            d.getFullYear() +
+            "-" + String(d.getMonth() + 1).padStart(2, "0") +
+            "-" + String(d.getDate()).padStart(2, "0");
+        (byDay[key] ||= []).push(iso);
+        }
+        setSlotsByDay(byDay);
     } catch (e) {
-      console.error(e);
-      setMessages((m) => [...m, { role: "assistant", content: "Couldn’t load availability right now." }]);
+        console.error(e);
+        setMessages((m) => [...m, { role: "assistant", content: "Couldn’t load availability right now." }]);
     } finally {
-      setLoadingAvail(false);
+        setLoadingAvail(false);
     }
   }
 
@@ -80,6 +93,7 @@ export default function ChatWidget() {
 
   function chooseTime(iso) {
     setPendingISO(iso);
+    setSlotsByDay({});
     setFlow(FLOW.ASK_EMAIL);
     setMessages((m) => [
       ...m,
@@ -156,16 +170,20 @@ export default function ChatWidget() {
     }
 
     if (flow === FLOW.ASK_NAME) {
-      setDetails((d) => ({ ...d, name: text }));
-      setFlow(FLOW.ASK_PHONE);
-      setMessages((m) => [...m, { role: "assistant", content: "And what phone number should I include? (optional)" }]);
-      return;
+        setDetails((d) => ({ ...d, name: text }));
+        setFlow(FLOW.ASK_PHONE);
+        setMessages((m) => [
+            ...m,
+            { role: "assistant", content: "And what phone number should I include? (type 'skip' to skip)" }
+        ]);
+        return;
     }
 
     if (flow === FLOW.ASK_PHONE) {
-      setDetails((d) => ({ ...d, phone: text }));
-      await finalizeBooking();
-      return;
+        const val = text.trim().toLowerCase() === "skip" ? "" : text.trim();
+        setDetails((d) => ({ ...d, phone: val }));
+        await finalizeBooking();
+        return;
     }
 
     // If user typed a scheduling intent while idle, kick off the flow automatically
@@ -218,6 +236,16 @@ export default function ChatWidget() {
     border: "1px solid #ddd", background: "#f9fafb", cursor: "pointer", margin: "6px",
   };
 
+  const listRef = useRef(null);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 0);
+  }, [messages, slotsByDay]);
+
+
   return (
     <>
       {/* Floating button */}
@@ -247,7 +275,8 @@ export default function ChatWidget() {
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+          <div ref={listRef} style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+            
             {messages.map((m, i) => (
               <div key={i} style={{ textAlign: m.role === "user" ? "right" : "left", margin: "8px 0" }}>
                 <span style={{
@@ -266,7 +295,7 @@ export default function ChatWidget() {
                 {Object.entries(slotsByDay).map(([day, list]) => (
                   <div key={day} style={{ marginBottom: 10 }}>
                     <div style={{ fontWeight: 800, fontSize: 13, margin: "8px 0", color: dateHeaderColor }}>
-                      {new Date(day + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
+                      {new Date(day + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
                     </div>
                     {list.map((iso) => (
                       <button key={iso} style={chip} onClick={() => chooseTime(iso)}>{fmtLocal(iso)}</button>
@@ -275,6 +304,7 @@ export default function ChatWidget() {
                 ))}
               </div>
             )}
+            <div ref={bottomRef} /> {/*autoscroll*/}
           </div>
 
           {/* Composer + actions */}

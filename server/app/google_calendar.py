@@ -1,10 +1,12 @@
-import os, datetime as dt
+import os
+import datetime as dt
 from typing import List, Tuple
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from .supabase_client import sb
+
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID") or "primary"
@@ -31,8 +33,8 @@ def _maybe_creds():
 def _busy_events(service, start_utc: dt.datetime, end_utc: dt.datetime) -> List[Tuple[dt.datetime, dt.datetime]]:
     items = service.events().list(
         calendarId=CALENDAR_ID,
-        timeMin=start_utc.isoformat() + "Z",
-        timeMax=end_utc.isoformat() + "Z",
+        timeMin=start_utc.isoformat().replace("+00:00", "Z"),
+        timeMax=end_utc.isoformat().replace("+00:00", "Z"),
         singleEvents=True,
         orderBy="startTime",
     ).execute().get("items", [])
@@ -98,24 +100,46 @@ def find_free_slots(days: int = 14, limit: int = 60) -> List[str]:
 
 def create_booking(
     start_iso: str,
-    attendee_email: str | None = None,
-    summary: str = "Aadee Inc – Consult",
+    attendee_email: str,
     duration_min: int = 30,
-    description: str | None = None,
+    name: str | None = None,
+    phone: str | None = None,
+    purpose: str | None = None,
+    summary: str | None = None,
 ) -> dict:
+    """
+    Create a Google Calendar event at start_iso (UTC ISO string).
+    Adds attendee, Meet link, and an info-rich description.
+    """
     creds = _maybe_creds()
     if not creds:
         raise RuntimeError("Google Calendar is not connected yet (visit /api/oauth/start).")
+
     service = build("calendar", "v3", credentials=creds)
+
+    # Parse start in UTC; end = start + duration
     start = dt.datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
     end = start + dt.timedelta(minutes=duration_min)
 
+    # Build a concise description with only provided fields
+    desc_lines = []
+    if purpose:
+        desc_lines.append(f"Purpose: {purpose}")
+    if name:
+        desc_lines.append(f"Name: {name}")
+    if phone:
+        desc_lines.append(f"Phone: {phone}")
+    description = "\n".join(desc_lines)
+
+    # Nice default title if none provided
+    event_summary = summary or f"Aadee Inc – Meeting with {name or attendee_email}"
+
     body = {
-        "summary": summary,
-        "start": {"dateTime": start.isoformat()},
-        "end": {"dateTime": end.isoformat()},
-        "attendees": ([{"email": attendee_email}] if attendee_email else []),
-        "description": description or "",
+        "summary": event_summary,
+        "description": description,
+        "start": {"dateTime": start.isoformat()},  # already has +00:00
+        "end":   {"dateTime": end.isoformat()},
+        "attendees": [{"email": attendee_email}],
         # Create a Google Meet link
         "conferenceData": {
             "createRequest": {
@@ -124,10 +148,12 @@ def create_booking(
             }
         },
     }
+
     ev = service.events().insert(
         calendarId=CALENDAR_ID,
         body=body,
         sendUpdates="all",
         conferenceDataVersion=1,
     ).execute()
+
     return {"id": ev.get("id"), "htmlLink": ev.get("htmlLink")}
