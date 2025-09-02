@@ -1,4 +1,3 @@
-// website/src/components/ChatWidget.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import Lottie from "lottie-react";
 import botAnim from "../assets/bot.json";
@@ -14,13 +13,24 @@ const fmtLocal = (iso) =>
 
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || "");
 
+// Simple state machine for scheduling
+const FLOW = {
+  IDLE: "IDLE",
+  ASK_PURPOSE: "ASK_PURPOSE",
+  CHOOSING_TIME: "CHOOSING_TIME",
+  ASK_EMAIL: "ASK_EMAIL",
+  ASK_NAME: "ASK_NAME",
+  ASK_PHONE: "ASK_PHONE",
+};
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [flow, setFlow] = useState(FLOW.IDLE);
   const [slotsByDay, setSlotsByDay] = useState({});
   const [loadingAvail, setLoadingAvail] = useState(false);
-  const [askingEmailFor, setAskingEmailFor] = useState(null); // iso we're booking for
-  const [email, setEmail] = useState("");
+  const [pendingISO, setPendingISO] = useState(null);
+  const [details, setDetails] = useState({ purpose: "", email: "", name: "", phone: "" });
   const inputRef = useRef(null);
 
   const backend = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -32,20 +42,133 @@ export default function ChatWidget() {
     return id;
   }, []);
 
+  // Visible header color fix
+  const brandTitleColor = "#111";       // black
+  const dateHeaderColor = "#ef4444";    // red-500
+
   useEffect(() => {
     if (open) {
       setMessages([{ role: "assistant", content: "Hi! How can I help you?" }]);
+      setFlow(FLOW.IDLE);
+      setSlotsByDay({});
+      setPendingISO(null);
+      setDetails({ purpose: "", email: "", name: "", phone: "" });
     }
   }, [open]);
 
-  async function send(e) {
+  async function fetchAvailability() {
+    setLoadingAvail(true);
+    setSlotsByDay({});
+    try {
+      const res = await fetch(`${backend}/api/chat/availability?days=14`);
+      const data = await res.json();
+      const grouped = data.grouped || {};
+      // grouped only contains days with slots; no “yesterday” noise
+      setSlotsByDay(grouped);
+    } catch (e) {
+      console.error(e);
+      setMessages((m) => [...m, { role: "assistant", content: "Couldn’t load availability right now." }]);
+    } finally {
+      setLoadingAvail(false);
+    }
+  }
+
+  function startScheduling() {
+    setFlow(FLOW.ASK_PURPOSE);
+    setMessages((m) => [...m, { role: "assistant", content: "Great—what is the meeting about?" }]);
+  }
+
+  function chooseTime(iso) {
+    setPendingISO(iso);
+    setFlow(FLOW.ASK_EMAIL);
+    setMessages((m) => [
+      ...m,
+      { role: "assistant", content: `Nice. I’ll hold ${fmtLocal(iso)}. What email should I send the invite to?` },
+    ]);
+  }
+
+  async function finalizeBooking() {
+    // call /book with purpose, name, phone, email
+    const payload = {
+      session_id: sessionId,
+      start_iso: pendingISO,
+      email: details.email,
+      name: details.name || null,
+      phone: details.phone || null,
+      purpose: details.purpose || null,
+    };
+    try {
+      const res = await fetch(`${backend}/api/chat/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data?.htmlLink) {
+        setMessages((m) => [
+          ...m,
+          { role: "assistant", content: `✅ Booked ${fmtLocal(pendingISO)}. Invite sent to ${details.email}.\nEvent: ${data.htmlLink}` },
+        ]);
+        // refresh availability so that slot disappears
+        await fetchAvailability();
+        // reset flow
+        setFlow(FLOW.IDLE);
+        setPendingISO(null);
+        setDetails({ purpose: "", email: "", name: "", phone: "" });
+      } else {
+        setMessages((m) => [...m, { role: "assistant", content: "Booking failed. Please try another time." }]);
+        setFlow(FLOW.CHOOSING_TIME);
+      }
+    } catch (e) {
+      console.error(e);
+      setMessages((m) => [...m, { role: "assistant", content: "Booking error. Please try again." }]);
+      setFlow(FLOW.CHOOSING_TIME);
+    }
+  }
+
+  async function onSend(e) {
     e.preventDefault();
-    const text = inputRef.current.value.trim();
+    const text = (inputRef.current?.value || "").trim();
     if (!text) return;
 
+    // Always echo the user message
     setMessages((m) => [...m, { role: "user", content: text }]);
     inputRef.current.value = "";
 
+    // Route based on flow
+    if (flow === FLOW.ASK_PURPOSE) {
+      setDetails((d) => ({ ...d, purpose: text }));
+      setFlow(FLOW.CHOOSING_TIME);
+      await fetchAvailability();
+      setMessages((m) => [...m, { role: "assistant", content: "Select a time that works for you:" }]);
+      return;
+    }
+
+    if (flow === FLOW.ASK_EMAIL) {
+      if (!isEmail(text)) {
+        setMessages((m) => [...m, { role: "assistant", content: "Please enter a valid email address." }]);
+        return;
+      }
+      setDetails((d) => ({ ...d, email: text }));
+      setFlow(FLOW.ASK_NAME);
+      setMessages((m) => [...m, { role: "assistant", content: "Got it. What name should I put on the invite?" }]);
+      return;
+    }
+
+    if (flow === FLOW.ASK_NAME) {
+      setDetails((d) => ({ ...d, name: text }));
+      setFlow(FLOW.ASK_PHONE);
+      setMessages((m) => [...m, { role: "assistant", content: "And what phone number should I include? (optional)" }]);
+      return;
+    }
+
+    if (flow === FLOW.ASK_PHONE) {
+      setDetails((d) => ({ ...d, phone: text }));
+      await finalizeBooking();
+      return;
+    }
+
+    // Default: normal Q&A
     try {
       const res = await fetch(`${backend}/api/chat/message`, {
         method: "POST",
@@ -60,66 +183,9 @@ export default function ChatWidget() {
     }
   }
 
-  async function loadAvailability() {
-    setLoadingAvail(true);
-    setSlotsByDay({});
-    try {
-      const res = await fetch(`${backend}/api/chat/availability?days=14`);
-      const data = await res.json();
-      const grouped = data.grouped || {};
-      setSlotsByDay(grouped);
-      if (Object.keys(grouped).length === 0) {
-        setMessages((m) => [...m, { role: "assistant", content: "I didn’t find open times—try again shortly." }]);
-      } else {
-        setMessages((m) => [...m, { role: "assistant", content: "Select a time that works for you:" }]);
-      }
-    } catch (e) {
-      console.error(e);
-      setMessages((m) => [...m, { role: "assistant", content: "Couldn’t load availability right now." }]);
-    } finally {
-      setLoadingAvail(false);
-    }
-  }
+  /* —— UI —— */
 
-  function askEmail(iso) {
-    setAskingEmailFor(iso);
-    setMessages((m) => [
-      ...m,
-      { role: "assistant", content: `Great—I'll book ${fmtLocal(iso)}. What email should I send the invite to?` },
-    ]);
-  }
-
-  async function confirmBooking(e) {
-    e.preventDefault();
-    if (!isEmail(email)) {
-      setMessages((m) => [...m, { role: "assistant", content: "Please enter a valid email." }]);
-      return;
-    }
-    try {
-      const res = await fetch(`${backend}/api/chat/book`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId, start_iso: askingEmailFor, email }),
-      });
-      const data = await res.json();
-      if (data?.htmlLink) {
-        setMessages((m) => [
-          ...m,
-          { role: "assistant", content: `✅ Booked ${fmtLocal(askingEmailFor)}. Invite sent to ${email}.\nEvent: ${data.htmlLink}` },
-        ]);
-        setSlotsByDay({});
-        setAskingEmailFor(null);
-        setEmail("");
-      } else {
-        setMessages((m) => [...m, { role: "assistant", content: "Booking failed. Please try again." }]);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessages((m) => [...m, { role: "assistant", content: "Booking request failed. Please try again." }]);
-    }
-  }
-
-  /* Styles */
+  // FAB styles (bigger + visible)
   const fabWrap = { position: "fixed", right: 20, bottom: 20, width: 84, height: 84, zIndex: 2147483647 };
   const ring = {
     position: "absolute", inset: -8, borderRadius: 9999,
@@ -132,6 +198,7 @@ export default function ChatWidget() {
     boxShadow: "0 18px 46px rgba(0,0,0,.35)",
     display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
   };
+
   const slide = {
     position: "fixed", right: 0, top: 0, height: "100vh", width: "min(440px, 100vw)",
     background: "#fff", borderLeft: "1px solid #eaeaea",
@@ -155,10 +222,10 @@ export default function ChatWidget() {
       {/* Slide-over */}
       {open && (
         <div style={slide}>
-          {/* Header */}
+          {/* Header (explicit, visible color) */}
           <div style={{ padding: 14, borderBottom: "1px solid #eee", display: "flex", gap: 10, alignItems: "center" }}>
             <Lottie animationData={botAnim} loop autoPlay style={{ width: 28, height: 28 }} />
-            <div style={{ fontWeight: 800, fontSize: 16 }}>Aadee Assistant</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: brandTitleColor }}>Aadee Assistant</div>
             <div style={{ marginLeft: "auto" }}>
               <button
                 onClick={() => setOpen(false)}
@@ -184,16 +251,16 @@ export default function ChatWidget() {
               </div>
             ))}
 
-            {/* Grouped slots */}
+            {/* Grouped slot chips (date headers clearly colored) */}
             {Object.keys(slotsByDay).length > 0 && (
               <div style={{ marginTop: 12 }}>
                 {Object.entries(slotsByDay).map(([day, list]) => (
                   <div key={day} style={{ marginBottom: 10 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, margin: "8px 0" }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, margin: "8px 0", color: dateHeaderColor }}>
                       {new Date(day + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
                     </div>
                     {list.map((iso) => (
-                      <button key={iso} style={chip} onClick={() => askEmail(iso)}>{fmtLocal(iso)}</button>
+                      <button key={iso} style={chip} onClick={() => chooseTime(iso)}>{fmtLocal(iso)}</button>
                     ))}
                   </div>
                 ))}
@@ -203,42 +270,29 @@ export default function ChatWidget() {
 
           {/* Composer + actions */}
           <div style={{ padding: 12, borderTop: "1px solid #eee" }}>
-            {/* If we’re asking for email, show a one-time inline prompt */}
-            {askingEmailFor && (
-              <form onSubmit={confirmBooking} style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={`Your email to confirm ${fmtLocal(askingEmailFor)}`}
-                  style={{ flex: 1, border: "1px solid #ddd", borderRadius: 8, padding: "10px 12px" }}
-                />
-                <button
-                  style={{ background: "#111", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", cursor: "pointer" }}
-                >
-                  Confirm
-                </button>
-              </form>
-            )}
-
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <button
-                onClick={loadAvailability}
+                onClick={startScheduling}
                 disabled={loadingAvail}
                 style={{ border: "1px solid #ddd", background: "#fff", borderRadius: 999, padding: "10px 14px", cursor: "pointer" }}
               >
-                {loadingAvail ? "Loading…" : "📅 Schedule a meeting"}
+                📅 Schedule a meeting
               </button>
             </div>
 
-            <form onSubmit={send} style={{ display: "flex", gap: 8 }}>
+            <form onSubmit={onSend} style={{ display: "flex", gap: 8 }}>
               <input
                 ref={inputRef}
-                placeholder="Type a message…"
+                placeholder={
+                  flow === FLOW.ASK_PURPOSE ? "Briefly describe the purpose…" :
+                  flow === FLOW.ASK_EMAIL   ? "Your email for the invite…" :
+                  flow === FLOW.ASK_NAME    ? "Your name for the invite…" :
+                  flow === FLOW.ASK_PHONE   ? "Your phone (optional)…" :
+                  "Type a message…"
+                }
                 style={{ flex: 1, border: "1px solid #ddd", borderRadius: 999, padding: "10px 14px" }}
               />
-              <button
-                style={{ background: "#111", color: "#fff", border: "none", borderRadius: 999, padding: "10px 16px", cursor: "pointer" }}
-              >
+              <button style={{ background: "#111", color: "#fff", border: "none", borderRadius: 999, padding: "10px 16px", cursor: "pointer" }}>
                 Send
               </button>
             </form>
@@ -247,9 +301,7 @@ export default function ChatWidget() {
       )}
 
       {/* keyframes for the ring */}
-      <style>{`
-        @keyframes pulse { 0% { transform: scale(.96); opacity: .7; } 50% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(.96); opacity: .7; } }
-      `}</style>
+      <style>{`@keyframes pulse{0%{transform:scale(.96);opacity:.7}50%{transform:scale(1.06);opacity:1}100%{transform:scale(.96);opacity:.7}}`}</style>
     </>
   );
 }

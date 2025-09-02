@@ -5,22 +5,21 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
-
 from .supabase_client import sb
 from .google_calendar import find_free_slots, create_booking
 
 router = APIRouter()
 
-# ----- OpenAI -----
+# ---------- OpenAI ----------
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-SYSTEM_PROMPT = """You are Aadee Assistant, a helpful agent for Aadee Inc.
-Use the company notes when relevant. If the user needs to schedule, suggest clicking the Schedule button.
+SYSTEM_PROMPT = """You are Aadee Assistant for Aadee Inc.
+Answer questions using the company notes below when relevant.
+For scheduling, the UI handles picking a time and collecting details.
 Be concise and friendly.
 """
 
 def fetch_knowledge() -> str:
-    """Fetch short company notes/FAQ from Supabase."""
     res = sb.table("knowledge_base").select("topic,content").execute()
     rows = res.data or []
     return "\n\n".join([f"[{r['topic']}]\n{r['content']}" for r in rows]) or "No company notes yet."
@@ -35,7 +34,7 @@ def llm_reply(user_text: str) -> str:
     content = resp.choices[0].message.content or ""
     return content.strip() if content else "Sorry—I couldn’t generate a reply."
 
-# ----- Models -----
+# ---------- Models ----------
 class ChatMessage(BaseModel):
     session_id: str
     text: str
@@ -43,23 +42,26 @@ class ChatMessage(BaseModel):
 class BookRequest(BaseModel):
     session_id: str
     start_iso: str
-    email: str | None = None
+    email: str
+    name: str | None = None
+    phone: str | None = None
+    purpose: str | None = None
 
-# ----- Routes -----
+# ---------- Routes ----------
 @router.post("/message")
 def handle_message(msg: ChatMessage):
-    # ensure session row exists
+    # Create session row if needed
     sb.table("chat_sessions").upsert({"id": msg.session_id}).execute()
 
-    # save user message
+    # Log user message
     sb.table("messages").insert({
         "session_id": msg.session_id, "role": "user", "content": msg.text
     }).execute()
 
-    # FAQ / general Q&A via OpenAI + knowledge base
+    # Q&A / FAQ
     reply = llm_reply(msg.text)
 
-    # save assistant reply
+    # Log assistant reply
     sb.table("messages").insert({
         "session_id": msg.session_id, "role": "assistant", "content": reply
     }).execute()
@@ -68,16 +70,12 @@ def handle_message(msg: ChatMessage):
 
 @router.get("/availability")
 def availability(days: int = Query(14, ge=1, le=30)):
-    """
-    Return available start times (ISO strings) and also grouped-by-day
-    for easy UI rendering. Backend falls back to business-hours slots
-    if Calendar is empty/unreachable.
-    """
+    """Return available ISO start times and grouped-by-day for clean UI."""
     try:
         slots = find_free_slots(days=days)
         grouped: Dict[str, List[str]] = {}
         for iso in slots:
-            day = iso[:10]
+            day = iso[:10]  # YYYY-MM-DD
             grouped.setdefault(day, []).append(iso)
         return {"slots": slots, "grouped": grouped}
     except Exception as e:
@@ -85,16 +83,29 @@ def availability(days: int = Query(14, ge=1, le=30)):
 
 @router.post("/book")
 def book(req: BookRequest):
-    if not req.start_iso:
-        raise HTTPException(status_code=400, detail="start_iso required")
+    if not req.start_iso or not req.email:
+        raise HTTPException(status_code=400, detail="start_iso and email required")
 
-    ev = create_booking(req.start_iso, attendee_email=req.email)
+    # Put context into the calendar description
+    desc_lines = []
+    if req.purpose: desc_lines.append(f"Purpose: {req.purpose}")
+    if req.name:    desc_lines.append(f"Name: {req.name}")
+    if req.phone:   desc_lines.append(f"Phone: {req.phone}")
+    description = "\n".join(desc_lines)
 
-    # log booking as a message (handy for analytics/history)
+    ev = create_booking(
+        start_iso=req.start_iso,
+        attendee_email=req.email,
+        summary="Aadee Inc – Meeting",
+        duration_min=30,
+        description=description or None,
+    )
+
+    # Log the booking
     sb.table("messages").insert({
         "session_id": req.session_id,
         "role": "assistant",
-        "content": f"Booked {req.start_iso} for {req.email}",
+        "content": f"Booked {req.start_iso} for {req.email} ({req.purpose or 'n/a'})"
     }).execute()
 
     return ev
