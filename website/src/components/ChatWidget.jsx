@@ -168,6 +168,15 @@ export default function ChatWidget() {
       return;
     }
 
+    // If user typed a scheduling intent while idle, kick off the flow automatically
+    const txt = text.toLowerCase();
+    const scheduleIntent = /(schedule|book|meeting|appointment|consult|availability|available|time|times)/i;
+    if (flow === FLOW.IDLE && scheduleIntent.test(txt)) {
+    setFlow(FLOW.ASK_PURPOSE);
+    setMessages((m) => [...m, { role: "assistant", content: "Great—what is the meeting about?" }]);
+    return;
+    }
+
     // Default: normal Q&A
     try {
       const res = await fetch(`${backend}/api/chat/message`, {

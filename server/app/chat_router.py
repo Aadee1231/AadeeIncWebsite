@@ -15,9 +15,11 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = """You are Aadee Assistant for Aadee Inc.
 Answer questions using the company notes below when relevant.
-For scheduling, the UI handles picking a time and collecting details.
-Be concise and friendly.
+When the user mentions scheduling, be encouraging and concise, e.g.:
+"Absolutely, I'm showing availability. Choose a time that works for you."
+Keep replies short and friendly.
 """
+
 
 def fetch_knowledge() -> str:
     res = sb.table("knowledge_base").select("topic,content").execute()
