@@ -1,3 +1,4 @@
+# server/app/google_calendar.py
 import os, datetime as dt
 from typing import List, Tuple
 from zoneinfo import ZoneInfo
@@ -8,15 +9,16 @@ from .supabase_client import sb
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 CALENDAR_ID = os.getenv("GOOGLE_CALENDAR_ID") or "primary"
 
+# Business-hours knobs (you can move these to env later)
 BUSINESS_TZ = os.getenv("BUSINESS_TZ", "America/New_York")
 BUSINESS_START = int(os.getenv("BUSINESS_START_HOUR", "9"))   # 9am
 BUSINESS_END   = int(os.getenv("BUSINESS_END_HOUR", "17"))    # 5pm
 SLOT_MINUTES   = int(os.getenv("SLOT_MINUTES", "30"))         # 30-min slots
 
-def _creds():
+def _maybe_creds():
     data = sb.table("google_oauth").select("*").eq("id",1).single().execute().data
     if not data:
-        raise RuntimeError("Google OAuth not connected yet")
+        return None
     return Credentials(
         token=data["access_token"],
         refresh_token=data["refresh_token"],
@@ -48,42 +50,63 @@ def _busy_events(service, start_utc: dt.datetime, end_utc: dt.datetime) -> List[
 def _overlaps(a_start: dt.datetime, a_end: dt.datetime, b_start: dt.datetime, b_end: dt.datetime) -> bool:
     return not (a_end <= b_start or b_end <= a_start)
 
-def find_free_slots(days: int = 14, limit: int = 60) -> List[str]:
-    """Return ISO times (UTC) for the next days during business hours, excluding busy events."""
-    creds = _creds()
-    service = build("calendar", "v3", credentials=creds)
+def _generate_business_slots(days: int, limit: int) -> List[str]:
+    """Generate candidate slots in your business TZ, return as ISO UTC Z strings."""
+    now_utc = dt.datetime.utcnow().replace(second=0, microsecond=0, tzinfo=dt.timezone.utc)
+    tz = ZoneInfo(BUSINESS_TZ)
+    slots: List[str] = []
+    current_day = now_utc.astimezone(tz).date()
+    last_day = (now_utc + dt.timedelta(days=days)).astimezone(tz).date()
+    while current_day <= last_day and len(slots) < limit:
+        start_local = dt.datetime.combine(current_day, dt.time(hour=BUSINESS_START, minute=0, tzinfo=tz))
+        end_local   = dt.datetime.combine(current_day, dt.time(hour=BUSINESS_END,   minute=0, tzinfo=tz))
+        cur = start_local
+        while cur < end_local and len(slots) < limit:
+            cur_utc = cur.astimezone(dt.timezone.utc)
+            if cur_utc > now_utc:
+                slots.append(cur_utc.isoformat().replace("+00:00", "Z"))
+            cur += dt.timedelta(minutes=SLOT_MINUTES)
+        current_day += dt.timedelta(days=1)
+    return slots
 
+def find_free_slots(days: int = 14, limit: int = 60) -> List[str]:
+    """
+    Try real Calendar availability; if none or Calendar not yet connected,
+    fall back to business-hours slots so we never return an empty list.
+    """
     now_utc = dt.datetime.utcnow().replace(second=0, microsecond=0, tzinfo=dt.timezone.utc)
     end_utc = now_utc + dt.timedelta(days=days)
 
-    # Busy windows from calendar
-    busy = _busy_events(service, now_utc, end_utc)
+    creds = _maybe_creds()
+    if creds:
+        try:
+            service = build("calendar", "v3", credentials=creds)
+            busy = _busy_events(service, now_utc, end_utc)
 
-    # Generate candidate slots in business timezone, then convert to UTC
-    tz = ZoneInfo(BUSINESS_TZ)
-    slots = []
-    day = now_utc.astimezone(tz).date()
-    last_day = (now_utc + dt.timedelta(days=days)).astimezone(tz).date()
+            # Start from business-hours candidates then filter out conflicts
+            candidates = _generate_business_slots(days, limit * 2)  # generate extra, filter down
+            filtered: List[str] = []
+            for iso in candidates:
+                if len(filtered) >= limit:
+                    break
+                s = dt.datetime.fromisoformat(iso.replace("Z", "+00:00"))
+                e = s + dt.timedelta(minutes=SLOT_MINUTES)
+                conflict = any(_overlaps(s, e, b0, b1) for (b0, b1) in busy)
+                if not conflict:
+                    filtered.append(iso)
+            if filtered:
+                return filtered
+        except Exception:
+            # If Google call fails, we’ll fall back below
+            pass
 
-    while day <= last_day and len(slots) < limit:
-        start_local = dt.datetime.combine(day, dt.time(hour=BUSINESS_START, minute=0, tzinfo=tz))
-        end_local   = dt.datetime.combine(day, dt.time(hour=BUSINESS_END,   minute=0, tzinfo=tz))
-        cur = start_local
-        while cur < end_local and len(slots) < limit:
-            cur_end = cur + dt.timedelta(minutes=SLOT_MINUTES)
-            cur_utc = cur.astimezone(dt.timezone.utc)
-            cur_end_utc = cur_end.astimezone(dt.timezone.utc)
-            # filter out slots that overlap any busy window
-            conflict = any(_overlaps(cur_utc, cur_end_utc, b0, b1) for (b0, b1) in busy)
-            if not conflict and cur_utc > now_utc:
-                slots.append(cur_utc.isoformat().replace("+00:00", "Z"))
-            cur = cur_end
-        day = day + dt.timedelta(days=1)
-
-    return slots
+    # Fallback: simple business-hours list (never empty)
+    return _generate_business_slots(days, limit)
 
 def create_booking(start_iso: str, attendee_email: str | None = None, summary="Aadee Inc – Consult", duration_min=30):
-    creds = _creds()
+    creds = _maybe_creds()
+    if not creds:
+        raise RuntimeError("Google Calendar is not connected yet (run /api/oauth/start).")
     service = build("calendar","v3",credentials=creds)
     start = dt.datetime.fromisoformat(start_iso.replace("Z","+00:00"))
     end = start + dt.timedelta(minutes=duration_min)
