@@ -33,7 +33,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
-          <Route path="/portal/*" element={<Portal />} /> {/* has /portal/login and the agent pages */}
+          <Route path="/portal/*" element={<Portal />} /> 
           <Route path="/contact" element={<Contact />} />
         </Routes>
         <Footer />
