@@ -132,7 +132,7 @@ def create_booking(
     description = "\n".join(desc_lines)
 
     # Nice default title if none provided
-    event_summary = summary or f"Aadee Inc – Meeting with {name or attendee_email}"
+    event_summary = summary or f"Aadee Inc - Meeting with {name or attendee_email}"
 
     body = {
         "summary": event_summary,

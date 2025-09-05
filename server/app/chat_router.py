@@ -40,6 +40,7 @@ def llm_reply(user_text: str) -> str:
 class ChatMessage(BaseModel):
     session_id: str
     text: str
+    agent: str = "king_ai"
 
 class BookRequest(BaseModel):
     session_id: str
@@ -59,6 +60,15 @@ def handle_message(msg: ChatMessage):
     sb.table("messages").insert({
         "session_id": msg.session_id, "role": "user", "content": msg.text
     }).execute()
+
+    if msg.agent == "king_ai":
+        reply = llm_reply(msg.text)
+    elif msg.agent == "social":
+        reply = "Social Media Manager coming soon — I can draft posts and calendars."
+    elif msg.agent == "tools":
+        reply = "Business Tools Builder coming soon — I can generate SOPs and checklists."
+    else:
+        reply = "Unknown agent."
 
     # Q&A / FAQ
     reply = llm_reply(msg.text)

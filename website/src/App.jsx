@@ -6,9 +6,10 @@ import Footer from "./components/FooterPro";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Services from "./pages/Services";
-import Pricing from "./pages/Pricing";
+import Portal from "./pages/Portal";
 import Contact from "./pages/Contact";
 import ChatWidget from "./components/ChatWidget";
+import AuthProvider from "./components/AuthProvider";
 import "./styles/theme.css";
 import "./styles/layout.css";
 import "./styles/effects.css";
@@ -32,7 +33,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/services" element={<Services />} />
-        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/portal/*" element={<Portal />} />
         <Route path="/contact" element={<Contact />} />
       </Routes>
       <Footer />
