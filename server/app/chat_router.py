@@ -64,22 +64,20 @@ _DAY_MAP = {
 
 def parse_hours(user_text: str) -> Optional[Dict[str, str]]:
     """
-    MVP parser for business-hours updates. Accepts inputs like:
-      - "update friday to 9-3"
-      - "mon 9-5 tue 9-5 wed 9-7 thu 9-5 fri 9-3 sat closed sun closed"
-      - "hours: mon-fri 9-5, sat 10-2, sun closed" (will catch the simple pairs)
-    Returns a dict like {"mon":"9-5", "fri":"9-3", "sun":"closed"} or None if no match.
+    Improved parser for business-hours updates.
+    Accepts things like:
+      - "fri 9-3"
+      - "friday to 9-3"
+      - "sunday closed"
+      - "mon-fri 9-5" (will just catch individual days if listed)
     """
     t = user_text.lower()
-    if "hour" not in t and "hours" not in t and re.search(r"\b(mon|tue|wed|thu|fri|sat|sun)\b", t) is None:
-        return None
-
-    # grab pairs like "friday 10-6" or "sun closed"
     hours: Dict[str, str] = {}
-    for m in re.finditer(
-        r"(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*(?:to|:)?\s*(closed|\d{1,2}\s*-\s*\d{1,2})",
-        t,
-    ):
+
+    # matches "friday to 9-3", "fri 9-3", "sun closed"
+    pattern = r"(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*(?:to|:)?\s*(closed|\d{1,2}\s*-\s*\d{1,2})"
+
+    for m in re.finditer(pattern, t):
         day_raw, val_raw = m.group(1), m.group(2)
         day = _DAY_MAP.get(day_raw, day_raw)
         val = val_raw.replace(" ", "")
