@@ -11,7 +11,7 @@ export default function Navbar(){
           <NavLink to="/"        className={({isActive})=> isActive ? "active" : ""} style={active}>Home</NavLink>
           <NavLink to="/about"   className={({isActive})=> isActive ? "active" : ""} style={active}>About</NavLink>
           <NavLink to="/services"className={({isActive})=> isActive ? "active" : ""} style={active}>Services</NavLink>
-          <NavLink to="/pricing" className={({isActive})=> isActive ? "active" : ""} style={active}>Price</NavLink>
+          <NavLink to="/portal" className={({isActive})=> isActive ? "active" : ""} style={active}>Portal</NavLink>
           <NavLink to="/contact" className={({isActive})=> isActive ? "active" : ""} style={active}>Contact</NavLink>
         </div>
       </div>
