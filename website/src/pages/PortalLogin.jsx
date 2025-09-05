@@ -16,7 +16,7 @@ export default function PortalLogin() {
   if (session) return <Navigate to={from} replace />;
 
   return (
-    <div style={{maxWidth: 420, margin: "40px auto"}}>
+    <div style={{maxWidth: 420, margin: "40px auto", textAlign:"center"}}>
       <h2>Portal Login</h2>
       <p>Sign-ups require a meeting with Aadee Inc. to be enabled.</p>
       {/* Replace with your email/password or magic link form */}
