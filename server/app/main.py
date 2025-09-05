@@ -17,7 +17,7 @@ app.add_middleware(
 
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 app.include_router(oauth_router, prefix="/api/oauth", tags=["oauth"])
-app.include_router(actions_router, prefix="/api",      tags=["actions"])  
+app.include_router(actions_router, prefix="/api", tags=["actions"]) 
 
 
 @app.get("/health")

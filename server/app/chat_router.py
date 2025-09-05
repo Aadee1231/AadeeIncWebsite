@@ -1,6 +1,7 @@
 # server/app/chat_router.py
 import os
-from typing import List, Dict
+import re
+from typing import List, Dict, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from openai import OpenAI
@@ -19,7 +20,6 @@ When the user mentions scheduling, be encouraging and concise, e.g.:
 "Absolutely, I'm showing availability. Choose a time that works for you."
 Keep replies short and friendly.
 """
-
 
 def fetch_knowledge() -> str:
     res = sb.table("knowledge_base").select("topic,content").execute()
@@ -40,7 +40,8 @@ def llm_reply(user_text: str) -> str:
 class ChatMessage(BaseModel):
     session_id: str
     text: str
-    agent: str = "king_ai"
+    agent: str = "king_ai"              # which agent is handling this chat
+    org_id: Optional[str] = "demo-org"  # simple default for now
 
 class BookRequest(BaseModel):
     session_id: str
@@ -50,10 +51,55 @@ class BookRequest(BaseModel):
     phone: str | None = None
     purpose: str | None = None
 
+# ---------- Helpers ----------
+_DAY_MAP = {
+    "mon": "mon", "monday": "mon",
+    "tue": "tue", "tuesday": "tue",
+    "wed": "wed", "wednesday": "wed",
+    "thu": "thu", "thursday": "thu",
+    "fri": "fri", "friday": "fri",
+    "sat": "sat", "saturday": "sat",
+    "sun": "sun", "sunday": "sun",
+}
+
+def parse_hours(user_text: str) -> Optional[Dict[str, str]]:
+    """
+    MVP parser for business-hours updates. Accepts inputs like:
+      - "update friday to 9-3"
+      - "mon 9-5 tue 9-5 wed 9-7 thu 9-5 fri 9-3 sat closed sun closed"
+      - "hours: mon-fri 9-5, sat 10-2, sun closed" (will catch the simple pairs)
+    Returns a dict like {"mon":"9-5", "fri":"9-3", "sun":"closed"} or None if no match.
+    """
+    t = user_text.lower()
+    if "hour" not in t and "hours" not in t and re.search(r"\b(mon|tue|wed|thu|fri|sat|sun)\b", t) is None:
+        return None
+
+    # grab pairs like "friday 10-6" or "sun closed"
+    hours: Dict[str, str] = {}
+    for m in re.finditer(
+        r"(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s*(?:to|:)?\s*(closed|\d{1,2}\s*-\s*\d{1,2})",
+        t,
+    ):
+        day_raw, val_raw = m.group(1), m.group(2)
+        day = _DAY_MAP.get(day_raw, day_raw)
+        val = val_raw.replace(" ", "")
+        hours[day] = val
+
+    return hours or None
+
+def draft_hours_action(org_id: str, session_id: str, hours: Dict[str, str]) -> None:
+    sb.table("actions").insert({
+        "org_id": org_id,
+        "session_id": session_id,
+        "type": "update_business_hours",
+        "params": hours,
+        "status": "pending",
+    }).execute()
+
 # ---------- Routes ----------
 @router.post("/message")
 def handle_message(msg: ChatMessage):
-    # Create session row if needed
+    # Ensure session exists
     sb.table("chat_sessions").upsert({"id": msg.session_id}).execute()
 
     # Log user message
@@ -61,17 +107,21 @@ def handle_message(msg: ChatMessage):
         "session_id": msg.session_id, "role": "user", "content": msg.text
     }).execute()
 
-    if msg.agent == "king_ai":
-        reply = llm_reply(msg.text)
-    elif msg.agent == "social":
-        reply = "Social Media Manager coming soon — I can draft posts and calendars."
-    elif msg.agent == "tools":
-        reply = "Business Tools Builder coming soon — I can generate SOPs and checklists."
+    # Only King AI is implemented right now
+    if msg.agent != "king_ai":
+        reply = "This chat currently supports AadeeChat (King AI) only."
     else:
-        reply = "Unknown agent."
-
-    # Q&A / FAQ
-    reply = llm_reply(msg.text)
+        # 1) Try to interpret as a business-hours update
+        maybe_hours = parse_hours(msg.text)
+        if maybe_hours:
+            draft_hours_action(org_id=msg.org_id or "demo-org", session_id=msg.session_id, hours=maybe_hours)
+            reply = (
+                "I drafted an hours update with these values: "
+                f"{maybe_hours}. It’s now awaiting approval in the Operator Dashboard."
+            )
+        else:
+            # 2) Otherwise, general Q&A using your knowledge base
+            reply = llm_reply(msg.text)
 
     # Log assistant reply
     sb.table("messages").insert({
