@@ -9,13 +9,12 @@ import Services from "./pages/Services";
 import Portal from "./pages/Portal";
 import Contact from "./pages/Contact";
 import ChatWidget from "./components/ChatWidget";
-import AuthProvider from "./components/AuthProvider";
+import AuthProvider from "./components/AuthProvider";  
+
 import "./styles/theme.css";
 import "./styles/layout.css";
 import "./styles/effects.css";
 
-
-// Sync site.json colors to CSS variables so rebranding is easy
 function useBrandColors() {
   useEffect(() => {
     const root = document.documentElement;
@@ -28,16 +27,18 @@ export default function App() {
   useBrandColors();
   return (
     <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/portal/*" element={<Portal />} />
-        <Route path="/contact" element={<Contact />} />
-      </Routes>
-      <Footer />
-      <ChatWidget />
+      <AuthProvider>   
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/portal/*" element={<Portal />} /> {/* has /portal/login and the agent pages */}
+          <Route path="/contact" element={<Contact />} />
+        </Routes>
+        <Footer />
+        <ChatWidget />
+      </AuthProvider>
     </BrowserRouter>
   );
 }
