@@ -139,7 +139,8 @@ def create_booking(
         "description": description,
         "start": {"dateTime": start.isoformat()},  # already has +00:00
         "end":   {"dateTime": end.isoformat()},
-        "attendees": [{"email": attendee_email}],
+        "Attendees": [{"email": attendee_email}],
+        "Phone #": [{"phone": phone}],
         # Create a Google Meet link
         "conferenceData": {
             "createRequest": {

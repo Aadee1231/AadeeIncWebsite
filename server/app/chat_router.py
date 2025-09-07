@@ -146,20 +146,31 @@ def book(req: BookRequest):
     if not req.start_iso or not req.email:
         raise HTTPException(status_code=400, detail="start_iso and email required")
 
-    ev = create_booking(
-        start_iso=req.start_iso,
-        attendee_email=req.email,
-        name=req.name,
-        phone=req.phone,
-        purpose=req.purpose,
-        duration_min=30,
-    )
+    # 1) Book the meeting (this is the only critical step)
+    try:
+        ev = create_booking(
+            start_iso=req.start_iso,
+            attendee_email=req.email,
+            name=req.name,
+            phone=req.phone,
+            purpose=req.purpose,
+            duration_min=30,
+        )
+    except Exception as e:
+        # If this fails, report it to the UI
+        raise HTTPException(status_code=500, detail="Calendar booking failed.")
 
-    # (optional) log to messages or a bookings table
-    sb.table("messages").insert({
-        "session_id": req.session_id,
-        "role": "assistant",
-        "content": f"Booked {req.start_iso} for {req.email} (purpose: {req.purpose or 'n/a'})"
-    }).execute()
+    # 2) Best-effort logging (must NEVER break the booking)
+    try:
+        sb.table("messages").insert({
+            "session_id": req.session_id,
+            "role": "assistant",
+            "content": f"Booked {req.start_iso} for {req.email} (purpose: {req.purpose or 'n/a'})"
+        }).execute()
+    except Exception as e:
+        # Don't surface this to the client; just note it in logs
+        print("Non-fatal: failed to log booking:", e)
 
-    return ev
+    # 3) Return a predictable success shape
+    # return JSON with ok + event so the UI can rely on it
+    return {"ok": True, "event": ev}  # e.g. {"event": {"id": "...", "htmlLink": "..."}}
