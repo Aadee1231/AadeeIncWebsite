@@ -1,96 +1,89 @@
-
-// website/src/pages/PortalKingAI.jsx
+// src/PortalKingAI.jsx
 import { useState } from "react";
-import { useAuth } from "../components/AuthProvider";
-
-const API_BASE = import.meta.env.VITE_API_BASE;
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 export default function PortalKingAI() {
-  const { session } = useAuth();
-  const [sessionId] = useState(() => crypto.randomUUID());
-  const [orgId] = useState("demo-org"); // TODO: replace with real org selection later
-  const [input, setInput] = useState("");
-  const [log, setLog] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const authedHeaders = {
-    "Content-Type": "application/json",
-    // If your backend enforces Supabase JWT verification, pass it:
-    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
-  };
+  const [businessName, setBusinessName] = useState("");
+  const [weekday, setWeekday] = useState("sunday");
+  const [date, setDate] = useState(""); // optional specific date
+  const [closed, setClosed] = useState(true);
+  const [providers, setProviders] = useState(["google", "yelp"]);
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState("");
 
-  async function send() {
-    if (!input.trim()) return;
-    setBusy(true);
+  const toggleProvider = (p) => {
+    setProviders((cur) =>
+      cur.includes(p) ? cur.filter(x => x !== p) : [...cur, p]
+    );
+  };
+  const submit = async () => {
+    setErr(""); setResult(null);
     try {
-      const res = await fetch(`${API_BASE}/api/chat/message`, {
+      const res = await fetch(`${API_BASE}/actions/listings/update-hours`, {
         method: "POST",
-        headers: authedHeaders,
-        body: JSON.stringify({
-          session_id: sessionId,
-          text: input,
-          agent: "king_ai",
-          org_id: orgId,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("aa_token")}`
+        },
+        body: JSON.stringify({ business_name: businessName, weekday, date: date || null, closed, providers }),
       });
       const data = await res.json();
-      setLog((l) => [
-        ...l,
-        { role: "user", text: input },
-        { role: "assistant", text: data.reply || "(no reply)" },
-      ]);
-      setInput("");
+      if (!res.ok) throw new Error(data.detail || "Error");
+      setResult(data);
     } catch (e) {
-      setLog((l) => [...l, { role: "assistant", text: `Error: ${String(e)}` }]);
-    } finally {
-      setBusy(false);
+      setErr("Failed to prepare hours update (stub).");
     }
-  }
+  };
 
   return (
-    <div style={{ maxWidth: 760, margin: "24px auto", padding: "0 12px" }}>
-      <h2>AadeeChat (King AI)</h2>
-      <p style={{ color: "#555" }}>
-        Try: <code>Update Friday to 9-3 and Sunday closed</code>
-      </p>
-
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, minHeight: 180, marginBottom: 12 }}>
-        {log.length === 0 && <div style={{ color: "#888" }}>Start a conversation…</div>}
-        {log.map((m, i) => (
-          <div key={i} style={{ margin: "6px 0", whiteSpace: "pre-wrap" }}>
-            <strong style={{ textTransform: "capitalize" }}>{m.role}:</strong> {m.text}
-          </div>
-        ))}
+    <div style={{ display: "grid", gap: 8 }}>
+      <h4>🏁 King AI — Change Hours</h4>
+      <label>
+        Business name
+        <input value={businessName} onChange={(e) => setBusinessName(e.target.value)}
+               style={{ width: "100%", padding: 8, marginTop: 4 }} />
+      </label>
+      <label>
+        Weekday (optional if setting specific date)
+        <select value={weekday} onChange={(e) => setWeekday(e.target.value)} style={{ width: "100%", padding: 8, marginTop: 4 }}>
+          {["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].map(w => <option key={w}>{w}</option>)}
+        </select>
+      </label>
+      <label>
+        Specific date (YYYY-MM-DD, optional)
+        <input value={date} onChange={(e) => setDate(e.target.value)}
+               placeholder="2025-09-14" style={{ width: "100%", padding: 8, marginTop: 4 }} />
+      </label>
+      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input type="checkbox" checked={closed} onChange={(e) => setClosed(e.target.checked)} />
+        Closed
+      </label>
+      <div>
+        Providers:
+        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+          {["google","yelp"].map(p => (
+            <button key={p} onClick={() => toggleProvider(p)}
+              style={{
+                padding: "6px 10px", borderRadius: 8, border: "1px solid #ddd",
+                background: providers.includes(p) ? "#111827" : "white",
+                color: providers.includes(p) ? "white" : "#111827"
+              }}>
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
-
-      <div style={{ display: "flex", gap: 8 }}>
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Ask me something…"
-          style={{
-            flex: 1,
-            padding: "10px 12px",
-            border: "1px solid #e5e7eb",
-            borderRadius: 8,
-            outline: "none",
-          }}
-        />
-        <button
-          onClick={send}
-          disabled={busy}
-          style={{
-            padding: "10px 16px",
-            borderRadius: 8,
-            border: "1px solid #111827",
-            background: busy ? "#9ca3af" : "#111827",
-            color: "white",
-            cursor: busy ? "not-allowed" : "pointer",
-          }}
-        >
-          {busy ? "Sending…" : "Send"}
-        </button>
-      </div>
+      <button onClick={submit} style={{ padding: "8px 12px", borderRadius: 8 }}>Generate Plan</button>
+      {err && <div style={{ color: "crimson" }}>{err}</div>}
+      {result && (
+        <div style={{ marginTop: 8, padding: 10, border: "1px solid #eee", borderRadius: 8, background: "#f9fafb" }}>
+          <b>Plan (stub):</b>
+          <ul>
+            {result.plan.map((p, i) => <li key={i}>{p}</li>)}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
+
