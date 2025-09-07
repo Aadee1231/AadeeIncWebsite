@@ -1,8 +1,9 @@
-// src/Portal.jsx
+// src/pages/Portal.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import PortalKingAI from "./PortalKingAI.jsx";
-import PortalSocial from "./PortalSocial.jsx";
-import PortalTools from "./PortalTools.jsx";
+import PortalKingAI from "./PortalKingAI";
+import PortalSocial from "./PortalSocial";
+import PortalTools from "./PortalTools";
+
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 const tokenHeader = () => ({ Authorization: `Bearer ${localStorage.getItem("aa_token")}` });
