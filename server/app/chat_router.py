@@ -141,16 +141,32 @@ def availability(days: int = Query(14, ge=1, le=30)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+def _clean_phone(val: Optional[str]) -> Optional[str]:
+    if not val:
+        return None
+    v = val.strip()
+    if v.lower() in {"skip", "none", "n/a", "na"}:
+        return None
+    # keep digits and leading +
+    v = re.sub(r"(?!^\+)[^\d]", "", v)
+    # require at least 7 digits to count as a phone
+    if len(re.sub(r"\D", "", v)) < 7:
+        return None
+    return v
+
 @router.post("/book")
 def book(req: BookRequest):
     if not req.start_iso or not req.email:
         raise HTTPException(status_code=400, detail="start_iso and email required")
 
+    phone_clean = _clean_phone(req.phone)
+
     ev = create_booking(
         start_iso=req.start_iso,
         attendee_email=req.email,
         name=req.name,
-        phone=req.phone,
+        phone=phone_clean,
         purpose=req.purpose,
         duration_min=30,
     )

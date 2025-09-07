@@ -79,7 +79,7 @@ def find_free_slots(days: int = 14, limit: int = 60) -> List[str]:
     now_utc = dt.datetime.utcnow().replace(second=0, microsecond=0, tzinfo=dt.timezone.utc)
     end_utc = now_utc + dt.timedelta(days=days)
 
-    slots = _generate_business_slots(days, limit * 3)  # generate extra, filter down
+    slots = _generate_business_slots(days, limit * 3) 
     creds = _maybe_creds()
     if not creds:
         # Fallback: no busy info → just candidates (UI still ok; booking will fail until OAuth done)
@@ -113,7 +113,7 @@ def create_booking(
     """
     creds = _maybe_creds()
     if not creds:
-        raise RuntimeError("Google Calendar is not connected yet (visit /api/oauth/start).")
+        raise RuntimeError()
 
     service = build("calendar", "v3", credentials=creds)
 
@@ -139,7 +139,7 @@ def create_booking(
         "description": description,
         "start": {"dateTime": start.isoformat()},  # already has +00:00
         "end":   {"dateTime": end.isoformat()},
-        "Attendees": [{"email": attendee_email}],
+        "attendees": [{"email": attendee_email}],
         "Phone #": [{"phone": phone}],
         # Create a Google Meet link
         "conferenceData": {
@@ -148,6 +148,8 @@ def create_booking(
                 "conferenceSolutionKey": {"type": "hangoutsMeet"},
             }
         },
+        "guestsCanInviteOthers": True,
+        "guestsCanSeeOtherGuests": True,
     }
 
     ev = service.events().insert(
