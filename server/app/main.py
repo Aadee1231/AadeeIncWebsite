@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from .chat_router import router as chat_router
 from .google_oauth_router import router as oauth_router
 from .actions_router import router as actions_router  
-from starlette.responses import JSONResponse
 
 
 app = FastAPI(title="Aadee Inc Backend")
