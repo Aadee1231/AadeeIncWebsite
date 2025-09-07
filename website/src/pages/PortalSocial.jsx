@@ -1,8 +1,9 @@
 export default function PortalSocial() {
   return (
-    <div style={{maxWidth: 760, margin: "24px auto", padding: "0 12px"}}>
-      <h2>Social Media Manager (beta)</h2>
-      <p>Draft posts, calendars, and analyze engagement — coming soon.</p>
+    <div className="p-6">
+      <h2>Social Media Manager (Preview)</h2>
+      <p>This tab will host the guided flow (Q&A → drafts → approve → publish).</p>
+      <p>Use the main Chat tab in “Social” mode to try the AI once we wire Part 2.</p>
     </div>
   );
 }

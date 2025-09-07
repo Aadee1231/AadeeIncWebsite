@@ -1,3 +1,4 @@
+/**
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import site from "./content/site.json";
@@ -39,6 +40,51 @@ export default function App() {
         <Footer />
         <ChatWidget />
       </AuthProvider>
+    </BrowserRouter>
+  );
+}
+*/
+
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { supabase } from './lib/supabaseClient';
+import Portal from './Portal.jsx';
+import PortalLogin from './PortalLogin.jsx';
+
+function Home() {
+  return (
+    <div className="p-8 max-w-3xl mx-auto">
+      <h1>Aadee Inc.</h1>
+      <p>Welcome! Head to the Portal to sign in.</p>
+      <p style={{ marginTop: 16 }}>
+        <Link to="/portal/login">Go to Portal Login →</Link>
+      </p>
+    </div>
+  );
+}
+
+export default function App() {
+  const [session, setSession] = useState(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, sess) => setSession(sess));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route
+          path="/portal/login"
+          element={session ? <Navigate to="/portal" replace /> : <PortalLogin />}
+        />
+        <Route
+          path="/portal/*"
+          element={session ? <Portal /> : <Navigate to="/portal/login" replace />}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }

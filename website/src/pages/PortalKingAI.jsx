@@ -1,3 +1,4 @@
+/**
 // website/src/pages/PortalKingAI.jsx
 import { useState } from "react";
 import { useAuth } from "../components/AuthProvider";
@@ -93,3 +94,15 @@ export default function PortalKingAI() {
     </div>
   );
 }
+  */
+
+export default function PortalKingAI() {
+  return (
+    <div className="p-6">
+      <h2>King AI (Preview)</h2>
+      <p>Here we’ll list quick actions like “Change Sunday hours”, with history and status.</p>
+      <p>Use the main Chat tab in “King” mode for commands once Part 3 is wired.</p>
+    </div>
+  );
+}
+
