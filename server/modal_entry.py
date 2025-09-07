@@ -1,4 +1,5 @@
 import modal
+from modal import Image
 
 app = modal.App("aadee-backend")
 
