@@ -8,8 +8,10 @@ import About from "./pages/About";
 import Services from "./pages/Services";
 import Portal from "./pages/Portal";
 import Contact from "./pages/Contact";
+import PosterLanding from "./pages/PosterLanding";
 import ChatWidget from "./components/ChatWidget";
-import AuthProvider from "./components/AuthProvider";  
+import AuthProvider from "./components/AuthProvider"; 
+ 
 
 import "./styles/theme.css";
 import "./styles/layout.css";
@@ -35,6 +37,7 @@ export default function App() {
           <Route path="/services" element={<Services />} />
           <Route path="/portal/*" element={<Portal />} /> 
           <Route path="/contact" element={<Contact />} />
+          <Route path="/poster" element={<PosterLanding />} />
         </Routes>
         <Footer />
         <ChatWidget />
