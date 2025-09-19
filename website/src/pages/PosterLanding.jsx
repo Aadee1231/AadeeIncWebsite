@@ -43,7 +43,7 @@ export default function PosterLanding() {
         <div style={styles.badgesRow}>
           <Badge>🚀 Fast Turnaround</Badge>
           <Badge>🎓 Student‑Friendly</Badge>
-          <Badge>💸 Starts at $100</Badge>
+          <Badge>💸 Affordable and Easy</Badge>
         </div>
 
         <h1 style={styles.title}>Your Website in a Week</h1>
